@@ -264,7 +264,9 @@ static func sync_from_scan_directories(registry: Registry) -> void:
 			for res in dir_get_matching_resources(scan_dir, scan_ruleset, scan_dir):
 				var uid := ResourceUID.path_to_uid(res.resource_path)
 				scanned_uids[uid] = true
-				if add_entry(registry, uid) == OK:
+
+				var string_id := _get_namespaced_string_id(res.resource_path, scan_dir)
+				if add_entry(registry, uid, string_id) == OK:
 					n_added += 1
 					if n_added == 1:
 						first_added = registry.get_string_id(uid)
@@ -820,3 +822,19 @@ class RegistryScanRuleset:
 				if is_additional_ruleset:
 					new_ruleset.override_properties.append(property_key)
 		return new_ruleset
+
+
+	static func _get_namespaced_string_id(resource_path: String, scan_directory: String) -> String:
+		var relative_path := resource_path.trim_prefix(scan_directory)
+
+		if relative_path.begins_with("/"):
+			relative_path = relative_path.substr(1)
+
+		var path_parts := relative_path.split("/", false)
+		var basename := resource_path.get_file().get_basename()
+
+		if path_parts.size() <= 1:
+			return basename
+
+		var namespace_id: String = path_parts[0]
+		return "%s:%s" % [namespace_id, basename]
